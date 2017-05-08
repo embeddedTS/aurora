@@ -24,12 +24,11 @@ for i in range(len(gammatable)):
     x = i
     x = float(x) / 255
     x = float(x) ** 2.6 #2.5
-    x = float(x) * 255 * 20 # Added * 10 make brighter 
+    x = float(x) * 255 * 20 # Added * 20 make brighter 
     gammatable[i] = float(x)
 
 # Aliases
 usleep = lambda x: time.sleep(x/1000000.0)
-
 
 # For when Ctrl+C is hit
 # Mostly for development
@@ -80,7 +79,6 @@ signal_interrupted = False
 black = [ (0,0,0) ] * NUMLEDS
 white = [ (255,255,255) ] * NUMLEDS
 
-#tcs_interrupt_enabled = 0 # Assume it's not enabled at first
 def matching_mode():
     global matching
     global matching_start_time
@@ -107,14 +105,15 @@ def matching_mode():
 
     tcs.clear_interrupt() # Turns the LED off
 
-    # Hold the matching color for a bit
-    #reactor.callLater(3, chill_mode)
-
     matching = False
 
 def sensor_interrupt_event_handler():
     print "Sensor interrupt event handler!"
     reactor.callInThread(matching_mode)
+
+def button_interrupt_event_handler():
+    print "Button interrupt event handler!"
+    reactor.callInThread(party_mode)
 
 def display_image(image):
     im = Image.open(image)
@@ -176,20 +175,11 @@ def party_mode():
     partying = False
     chill = True
 
-def button_interrupt_event_handler():
-    print "Button interrupt event handler!"
-    global button_interrupted
-    print "Start the party mode (in thread)!"
-    reactor.callInThread(party_mode)
-
-    #button_interrupted = False
 
 def sensor_interrupt_fired(pin, state):
 
     global sensor_interrupted
     global matching
-
-    print "Sensor interrupt fired, %s" % state
 
     if state:
         sensor_interrupted = False
@@ -197,9 +187,7 @@ def sensor_interrupt_fired(pin, state):
 
     else:
         sensor_interrupted = True
-        print "sensor interrupted"
         if not matching:
-            print "not matching, so go ahead and match"
             reactor.fireSystemEvent('sensor-interrupt')
 
         # Need to setup the trigger event again!
@@ -209,8 +197,7 @@ def button_pressed(pin, state):
     global partying
     global chilling
     global button_interrupted
-    print "Button pressed!  State: %s" % state
-
+    #print "Button pressed!  State: %s" % state
 
     # Tied to normally open pin, 0 = button pressed
     if not state:
@@ -270,7 +257,6 @@ reactor.addSystemEventTrigger('before', 'sensor-interrupt', sensor_interrupt_eve
 reactor.addSystemEventTrigger('before', 'button-interrupt', button_interrupt_event_handler)
 
 lc = LoopingCall(main)
-#lc.start(0.1)
-lc.start(1)
+lc.start(.1)
 
 reactor.run()
