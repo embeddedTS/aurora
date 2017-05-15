@@ -13,7 +13,17 @@ RGB_INT = 65
 PTY_BTN = 66
 
 # TCS34725 Setup Vars
-TCS34725_PERS_10_CYCLE = 0b0101
+TCS34725_PERS_10_CYCLE = 0b0101 # 10 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_15_CYCLE = 0b0110 # 15 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_20_CYCLE = 0b0111 # 20 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_25_CYCLE = 0b1000 # 25 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_30_CYCLE = 0b1001 # 30 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_35_CYCLE = 0b1010 # 35 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_40_CYCLE = 0b1011 # 40 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_45_CYCLE = 0b1100 # 45 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_50_CYCLE = 0b1101 # 50 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_55_CYCLE = 0b1110 # 55 clean channel values outside threshold range generates an interrupt
+TCS34725_PERS_60_CYCLE = 0b1111 # 60 clean channel values outside threshold range generates an interrupt
 
 # NeoPixel LED Strip Setup
 NUMLEDS = 38 
@@ -79,6 +89,7 @@ signal_interrupted = False
 black = [ (0,0,0) ] * NUMLEDS
 white = [ (255,255,255) ] * NUMLEDS
 
+
 def matching_mode():
     global matching
     global matching_start_time
@@ -87,21 +98,35 @@ def matching_mode():
     matching_start_time = time.time()
 
     led_en.set()
-    usleep(5000)
+    usleep(10000)
     r, g, b, c = tcs.get_raw_data()
+    #print("INT: Red: {0}, Green: {1}, Blue: {2}, Clear: {3}".format(r,g,b,c))
+    led_en.reset()
 
-    print("INT: Red: {0}, Green: {1}, Blue: {2}, Clear: {3:02X}".format(r,g,b,c))
     hr, hg, hb = calculate_hex_code(r, g, b, c)
+    #print("Red: {0}, Green: {1}, Blue: {2}, Clear: {3}".format(hr,hg,hb,c))
 
     strip_color_r = gammatable[int(hr)] 
     strip_color_g = gammatable[int(hg)] 
     strip_color_b = gammatable[int(hb)] 
+    #print("Red: {0}, Green: {1}, Blue: {2}, Clear: {3}".format(strip_color_r,strip_color_g,strip_color_b,c))
+
+    if c < 325 and (hr > 36 and hr < 48) and (hg > 45 and hg < 52) and (hb > 31 and hb < 37):
+        strip_color_r = 0
+        strip_color_g = 0
+        strip_color_b = 0
+
+    elif c >= 1020 and (hr > 39 and hr < 63) and (hg > 56 and hg < 79) and (hb > 40 and hb < 59):
+        strip_color_r = 255
+        strip_color_g = 255
+        strip_color_b = 255
 
     # Chase/Wipe effect
     for i in range(len(led_strip)):
         led_strip[i] = (strip_color_r, strip_color_g, strip_color_b)
         client.put_pixels(led_strip)
-        usleep(10000)
+        client.put_pixels(led_strip)
+        usleep(20000)
 
     tcs.clear_interrupt() # Turns the LED off
 
