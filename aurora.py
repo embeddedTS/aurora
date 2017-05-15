@@ -29,6 +29,7 @@ TCS34725_PERS_60_CYCLE = 0b1111 # 60 clean channel values outside threshold rang
 NUMLEDS = 38 
 led_strip = [(0,0,0)] * NUMLEDS
 
+# To convert color sensor data into a value that the human eye can recognize
 gammatable = [None]*255
 for i in range(len(gammatable)):
     x = i
